@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Table Titan | Master Your Math</title>
+    <meta name="description" content="Master multiplication tables 1-20 with interactive flashcards, speed tests, and personalized practice.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="dark-theme">
+    <div id="app-root">
+        <nav class="glass-nav">
+            <div class="logo">
+                <img src="logo.png" alt="Math Titan Logo" class="logo-img">
+                Math<span>Titan</span>
+            </div>
+            <div class="nav-links">
+                <button onclick="router.navigate('home')" id="nav-btn-home" class="active">Home</button>
+                <button onclick="router.navigate('tables')" id="nav-btn-tables">Tables</button>
+                <button onclick="router.navigate('lab')" id="nav-btn-lab">Math Lab</button>
+                <button onclick="router.navigate('challenge')" id="nav-btn-challenge">Challenge</button>
+            </div>
+            <div class="stats-mini">
+                <span id="streak-count">🔥 0</span>
+            </div>
+        </nav>
+
+        <main id="main-content">
+            <!-- Dynamic content injected here -->
+        </main>
+
+        <footer class="glass-footer">
+            <p>Made with ❤️ by <a href="https://armevox.vercel.app" target="_blank">Armaan</a></p>
+        </footer>
+
+        <div class="aurora-bg">
+            <div class="blob blob-1"></div>
+            <div class="blob blob-2"></div>
+            <div class="blob blob-3"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
