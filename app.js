@@ -20,10 +20,13 @@ const state = {
 // Router
 const router = {
     navigate: (view, params = {}) => {
+        const previousView = state.currentView;
         state.currentView = view;
         updateNav(view);
         render(view, params);
-        window.scrollTo(0, 0);
+        if (previousView !== view) {
+            window.scrollTo(0, 0);
+        }
     }
 };
 
