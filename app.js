@@ -12,7 +12,7 @@ const state = {
         interval: null,
         isActive: false
     },
-    mistakes: JSON.parse(localStorage.getItem('tt-mistakes')) || {},
+    stats: JSON.parse(localStorage.getItem('tt-smart-stats')) || {},
     selectedTables: [],
     currentCategory: 'multiplication' // multiplication, squares, cubes
 };
@@ -120,17 +120,30 @@ const views = {
     },
 
     focus: () => {
-        const topMistakes = Object.entries(state.mistakes)
-            .sort((a, b) => b[1] - a[1])
-            .map(m => parseInt(m[0]));
+        const topMistakes = Object.entries(state.stats)
+            .filter(([k, v]) => v > 0)
+            .sort((a, b) => b[1] - a[1]);
         
         if (topMistakes.length === 0) return views.home();
 
-        // Generate a question only from mistake tables
-        const n1 = topMistakes[Math.floor(Math.random() * topMistakes.length)];
-        const n2 = Math.floor(Math.random() * 10) + 1;
-        const q = { n1, n2, ans: n1 * n2 };
+        // Pick one of the top 10 mistakes randomly
+        const pool = topMistakes.slice(0, 10);
+        const selected = pool[Math.floor(Math.random() * pool.length)][0];
+        
+        const parts = selected.split('|');
+        const type = parts[0];
+        const n1 = parseInt(parts[1]);
+        const n2 = parts[2] ? parseInt(parts[2]) : null;
+        
+        let ans;
+        if (type === 'mul') ans = n1 * n2;
+        else if (type === 'sq') ans = n1 * n1;
+        else ans = n1 * n1 * n1;
+
+        const q = { n1, n2, ans, type };
         state.quiz.currentQuestion = q;
+        
+        const equation = q.type === 'mul' ? `${q.n1} × ${q.n2}` : (q.type === 'sq' ? `${q.n1}²` : `${q.n1}³`);
 
         return `
             <div class="hero">
@@ -138,7 +151,7 @@ const views = {
                 <p>Targeting your most frequent mistakes.</p>
             </div>
             <div class="quiz-box glass-card" style="border-color: #f87171;">
-                <div class="equation" style="font-size: 4rem; font-weight: 800;">${q.n1} × ${q.n2}</div>
+                <div class="equation" style="font-size: 4rem; font-weight: 800;">${equation}</div>
                 <div class="input-group">
                     <input type="number" id="quiz-input" class="answer-input" placeholder="?" autofocus onkeyup="checkFocusAnswer(event)">
                 </div>
@@ -290,25 +303,51 @@ const views = {
 
 // Utils
 function generateQuestion() {
-    // If we're in a specific category (added logic for challenge switching later)
     const cat = state.currentCategory;
-    
+    let pool = [];
+
     if (cat === 'multiplication') {
-        let n1;
-        if (state.selectedTables.length > 0) {
-            n1 = state.selectedTables[Math.floor(Math.random() * state.selectedTables.length)];
-        } else {
-            n1 = Math.floor(Math.random() * 50) + 1;
+        const tables = state.selectedTables.length > 0 ? state.selectedTables : Array.from({length: 50}, (_, i) => i + 1);
+        for (const t of tables) {
+            for (let i = 1; i <= 10; i++) {
+                pool.push({ type: 'mul', n1: t, n2: i, ans: t * i, key: `mul|${t}|${i}` });
+            }
         }
-        const n2 = Math.floor(Math.random() * 10) + 1;
-        return { n1, n2, ans: n1 * n2, type: 'mul' };
     } else if (cat === 'squares') {
-        const n1 = Math.floor(Math.random() * 30) + 1;
-        return { n1, n2: null, ans: n1 * n1, type: 'sq' };
-    } else {
-        const n1 = Math.floor(Math.random() * 10) + 1;
-        return { n1, n2: null, ans: n1 * n1 * n1, type: 'cb' };
+        for (let i = 1; i <= 30; i++) {
+            pool.push({ type: 'sq', n1: i, n2: null, ans: i * i, key: `sq|${i}|` });
+        }
+    } else if (cat === 'cubes') {
+        for (let i = 1; i <= 10; i++) {
+            pool.push({ type: 'cb', n1: i, n2: null, ans: i * i * i, key: `cb|${i}|` });
+        }
     }
+
+    let totalWeight = 0;
+    const weightedPool = pool.map(q => {
+        let weight = 1; // Base weight
+
+        if (q.type === 'mul') {
+            if ([3, 4, 5].includes(q.n2)) weight += 1;
+            if ([6, 7, 8, 9].includes(q.n2)) weight += 2;
+        } else if (q.type === 'sq' && q.n1 > 10) {
+            weight += 2;
+        }
+
+        const pastMistakes = state.stats[q.key] || 0;
+        weight += (pastMistakes * 5);
+
+        totalWeight += weight;
+        return { ...q, weight };
+    });
+
+    let random = Math.random() * totalWeight;
+    for (const q of weightedPool) {
+        random -= q.weight;
+        if (random <= 0) return q;
+    }
+    
+    return pool[0];
 }
 
 window.setCategory = (cat) => {
@@ -350,12 +389,14 @@ window.checkAnswer = (e) => {
         if (val === q.ans) {
             feedback.innerHTML = '<span style="color: #4ade80;">Correct!</span>';
             state.streak++;
+            reduceMistake(q);
             saveStreak();
             updateUIStats();
             setTimeout(() => router.navigate('practice-loop'), 500);
         } else {
-            feedback.innerHTML = `<span style="color: #f87171;">Ouch! ${q.n1} × ${q.n2} = ${q.ans}</span>`;
-            trackMistake(q.n1);
+            const equation = q.type === 'mul' ? `${q.n1} × ${q.n2}` : (q.type === 'sq' ? `${q.n1}²` : `${q.n1}³`);
+            feedback.innerHTML = `<span style="color: #f87171;">Ouch! ${equation} = ${q.ans}</span>`;
+            trackMistake(q);
             state.streak = 0;
             saveStreak();
             updateUIStats();
@@ -409,6 +450,7 @@ window.checkSpeedAnswer = (e) => {
     
     if (val === q.ans) {
         state.quiz.score++;
+        reduceMistake(q);
         document.getElementById('current-score').innerText = state.quiz.score;
         nextSpeedQuestion();
     }
@@ -422,12 +464,11 @@ window.checkFocusAnswer = (e) => {
         
         if (val === q.ans) {
             feedback.innerHTML = '<span style="color: #4ade80;">Correct! Reduced mistake weight.</span>';
-            state.mistakes[q.n1] = Math.max(0, state.mistakes[q.n1] - 1);
-            localStorage.setItem('tt-mistakes', JSON.stringify(state.mistakes));
+            reduceMistake(q);
             setTimeout(() => router.navigate('focus'), 600);
         } else {
             feedback.innerHTML = `<span style="color: #f87171;">Still tricky! It's ${q.ans}</span>`;
-            trackMistake(q.n1);
+            trackMistake(q);
             const input = document.getElementById('quiz-input');
             input.value = '';
             input.classList.add('shake');
@@ -436,9 +477,22 @@ window.checkFocusAnswer = (e) => {
     }
 };
 
-function trackMistake(table) {
-    state.mistakes[table] = (state.mistakes[table] || 0) + 1;
-    localStorage.setItem('tt-mistakes', JSON.stringify(state.mistakes));
+function getProblemKey(q) {
+    return `${q.type}|${q.n1}|${q.n2 || ''}`;
+}
+
+function trackMistake(q) {
+    const key = getProblemKey(q);
+    state.stats[key] = (state.stats[key] || 0) + 1;
+    localStorage.setItem('tt-smart-stats', JSON.stringify(state.stats));
+}
+
+function reduceMistake(q) {
+    const key = getProblemKey(q);
+    if (state.stats[key]) {
+        state.stats[key] = Math.max(0, state.stats[key] - 1);
+        localStorage.setItem('tt-smart-stats', JSON.stringify(state.stats));
+    }
 }
 
 function saveStreak() {

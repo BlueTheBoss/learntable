@@ -9,9 +9,13 @@ A high-performance, aesthetically stunning web application designed to help user
   - **Squares 1-30**: Full reference with square roots included for every number.
   - **Cubes 1-10**: Full reference with cube roots included for every number.
   - **Root Visualization**: Every square and cube is displayed alongside its root.
+- **Smart Adaptive Engine**:
+  - **Spaced Repetition System**: Tracks individual problem mistakes and prioritizes giving you the problems you struggle with the most.
+  - **Inherent Difficulty Weighting**: Naturally biases complex multipliers (like ×7, ×8, ×9) over simpler ones to maximize your learning curve.
+  - **Focus Zone**: Automatically curates a rapid-fire session of your top 10 most missed mathematical equations to aggressively target weaknesses.
 - **Challenge & Speed Test**:
   - **Practice Selection**: Select specific tables or categories before starting a session.
-  - **Practice Loop**: Random questions from your selected topics to build general proficiency.
+  - **Practice Loop**: Adaptive questions from your selected topics to build general proficiency.
   - **60s Speed Test**: A high-intensity mode to sharpen your reflexes.
   - **Real-time Feedback**: Immediate visual cues and shake animations for incorrect answers.
 - **Interactive Flashcards**:
